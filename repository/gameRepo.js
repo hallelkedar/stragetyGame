@@ -5,10 +5,10 @@ const db = await connectToDB()
 const collection = db.collection("games");
 
 export default {
-  createGame: async (playerName, teritories) => {
+  createGame: async (playerName, territories) => {
     const result = await collection.insertOne({
       playerName,
-      teritories,
+      territories,
       round: 1,
       phase: "reinforce",
       status: "playing",
@@ -17,8 +17,7 @@ export default {
    return result.insertedId
   },
   getGameById: async (gameId) => {
-    
-    return await collection.findOne({_id: new ObjectId(gameId)})
+    return await collection.findOne({_id: gameId})
   },
   updateGame: async (gameId, gameData) => {
     const result = await collection.updateOne({_id: gameId}, gameData)
