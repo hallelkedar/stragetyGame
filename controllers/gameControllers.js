@@ -8,9 +8,10 @@ const gameService = createGameService(gameRepo, mapRepo)
 
 export default {
     newGameCtrl: async (req, res) => {
+        if (!req.body) throwError('Request must contain body', 422)
         const {playerName} = req.body
         if (!playerName || playerName.length === 0) throwError("Player name is not valid", 400)
-        gameService.initialTerittoriesMap()
+        await gameService.initialTerittoriesMap()
         
         const game = await gameService.createNewGame(playerName.trim())
         return res.status(201).json(game)
