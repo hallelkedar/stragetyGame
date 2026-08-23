@@ -1,11 +1,13 @@
-import db from "../db/dbConnection.js";
+import { ObjectId } from "mongodb";
+import {connectToDB} from "../db/dbConnection.js";
 
+const db = await connectToDB()
 const collection = db.collection("games");
 
 export default {
-  createGame: async (name, teritories) => {
+  createGame: async (playerName, teritories) => {
     const result = await collection.insertOne({
-      name,
+      playerName,
       teritories,
       round: 1,
       phase: "reinforce",
@@ -15,7 +17,8 @@ export default {
    return result.insertedId
   },
   getGameById: async (gameId) => {
-    return await collection.findOne({_id: gameId})
+    
+    return await collection.findOne({_id: new ObjectId(gameId)})
   },
   updateGame: async (gameId, gameData) => {
     const result = await collection.updateOne({_id: gameId}, gameData)
