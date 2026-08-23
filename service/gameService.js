@@ -26,7 +26,7 @@ export default (gameRepo, mapRepo) => {
 
     reinforce: async (gameId, territoryId, currentUser) => {
       const game = gameRepo.getGameById(gameId);
-      gameIdValidation(gameId)
+      gameIdValidation(gameId);
       isTurnValid(game, "reinforce");
 
       const territory = game.territories.find(
@@ -60,7 +60,7 @@ export default (gameRepo, mapRepo) => {
       currentUser,
       skip = false,
     ) {
-      gameIdValidation(gameId)
+      gameIdValidation(gameId);
       const game = await gameRepo.getGameById(gameId);
 
       if (!skip) {
@@ -124,7 +124,7 @@ export default (gameRepo, mapRepo) => {
     },
 
     async move(gameId, sourceId, targetId, soldiersAmount, currentUser) {
-      gameIdValidation(gameId)
+      gameIdValidation(gameId);
       const game = await getGameById(gameId);
       isTurnValid(game, "move");
 
@@ -155,7 +155,7 @@ export default (gameRepo, mapRepo) => {
 
       await updateGame(gameId, game);
 
-      const computerEvents = await computerTurn(gameId);
+      const computerEvents = await this.computerTurn(gameId);
       return {
         game,
         playerEvent: {
@@ -169,8 +169,8 @@ export default (gameRepo, mapRepo) => {
     },
 
     async endTurnWithoutMove(gameId) {
-      gameIdValidation(gameId)
-      const computerEvents = await computerTurn(gameId);
+      gameIdValidation(gameId);
+      const computerEvents = await this.computerTurn(gameId);
       const game = await gameRepo.getGameById(gameId);
       if (game.status === "playing") {
         game.phase = "reinforce";
@@ -184,8 +184,56 @@ export default (gameRepo, mapRepo) => {
       };
     },
 
-    async computerTurn (gameId) {
+    async computerTurn(gameId) {},
 
-    }
+    computerReinforce: (game) => {
+      const playerTerDistance = game.territories.map((ter) => {
+        if (ter.owner === "player") return ter.distanceFromComputerHQ;
+      });
+      const minComputerHQDistance = Math.min(playerTerDistance);
+
+      const computerTerittories = game.territories.filter(
+        (ter) => ter.owner === "computer",
+      );
+
+      if (minComputerHQDistance <= 2) {
+        const borderTerittories = computerTerittories.filter(
+          (ter) =>
+            ter.distanceFromComputerHQ ===
+            Math.min(game.territories.map((ter) => ter.distanceFromComputerHQ)),
+        );
+
+        if (borderTerittories.length === 1) return borderTerittories[0];
+        const minSoldiers = Math.min(
+          borderTerittories.map((ter) => ter.soldiers),
+        );
+
+        const minSoldiersTer = borderTerittories.filter(
+          (ter) => ter.soldiers === minSoldiers,
+        );
+        if (minSoldiers.length === 1) return minSoldiersTer[0];
+      } else {
+        const borderTerittories = minComputerHQDistance.filter(
+          (ter) =>
+            ter.distanceFromPlayerHQ ===
+            Math.min(
+              computerTerittories.map((ter) => ter.distanceFromPlayerHQ),
+            ),
+        );
+        if (borderTerittories.length === 1) return borderTerittories[0];
+        const minSoldiersTer = borderTerittories.filter(
+          (ter) =>
+            ter.soldiers ===
+            Math.min(borderTerittories.map((ter) => ter.soldiers)),
+        );
+
+        if (minSoldiersTer.length === 1) return minSoldiersTer[0];
+      }
+      return minSoldiersTer.filter(
+        (ter) => ter.id === Math.min(minSoldiersTer.map((ter) => ter.id)),
+      );
+    },
+
+    computerAttack: (game) => {},
   };
 };
