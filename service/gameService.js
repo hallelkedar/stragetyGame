@@ -1,42 +1,40 @@
-export default createService = (gameRepo, mapRepo) => {
+import { throwError, fightCalculate } from "../utils/utils.js";
+import gameIdValidation from "./gameIdValidation.js";
+
+export default (gameRepo, mapRepo) => {
   return {
-    createNewGame: async (name) => {
-      const teritories = await mapRepo.get();
-      teritories.forEach((territory) => {
+    initialTerittoriesMap: async () => {
+      const map = await mapRepo.getMapJSON();
+      const mapSaved = await mapRepo.createMap(map);
+    },
+    createNewGame: async (playerName) => {
+      const terittories = await mapRepo.getMap();
+      terittories.forEach((territory) => {
         territory.owner = territory.startOwner;
-        territory.soldiers = 3;
+        territory.soldiers = territory.headquarters ? 8 : 4;
       });
-      const gameId = gameRepo.createGame(name, teritories);
-      const game = gameRepo.getGameById(gameId);
+      const gameId = await gameRepo.createGame(playerName, terittories);
+      const game = await gameRepo.getGameById(gameId);
       return game;
     },
 
     isTurnValid: (game, turnName) => {
-      if (game.status !== "playing") {
-        return { success: false, message: "Game is not active" };
-      }
-      if (game.phase !== turnName) {
-        return { success: false, message: `Phase is not ${turnName}` };
-      }
-      return { success: true };
+      game.status !== "playing" ? throwError("Game is not active", 409) : null;
+      game.phase !== turnName ? throwError(`Phase is not ${turnName}`) : null;
+      return true;
     },
 
     reinforce: async (gameId, territoryId, currentUser) => {
       const game = gameRepo.getGameById(gameId);
-      const validation = isTurnValid(game, "reinforce");
-      if (!validation.success) {
-        return validation;
-      }
+      gameIdValidation(gameId)
+      isTurnValid(game, "reinforce");
 
       const territory = game.territories.find(
         (territory) => territory.id === territoryId,
       );
 
       if (!territory || territory.owner !== currentUser)
-        return {
-          success: false,
-          message: "territory is not valid to reinforce",
-        };
+        throwError("territory is not valid to reinforce", 400);
 
       territory.soldiers += 3;
       game.phase = "attack";
@@ -54,47 +52,48 @@ export default createService = (gameRepo, mapRepo) => {
       };
     },
 
-    async attack(gameId, sourceId, targetId, soldiersAmount, currentUser) {
+    async attack(
+      gameId,
+      sourceId,
+      targetId,
+      soldiersAmount,
+      currentUser,
+      skip = false,
+    ) {
+      gameIdValidation(gameId)
       const game = await gameRepo.getGameById(gameId);
-      const validation = isTurnValid(game, "attack");
-      if (!validation.success) {
-        return validation;
-      }
 
-      const source = game.teritories.find(
-        (territory) => territory.id === sourceId,
-      );
-      const target = game.teritories.find(
-        (territory) => territory.id === targetId,
-      );
+      if (!skip) {
+        isTurnValid(game, "attack");
 
-      if (!source || !target) {
-        return {
-          success: false,
-          message: "source or target not found",
-        };
-      }
+        const source = game.teritories.find(
+          (territory) => territory.id === sourceId,
+        );
+        const target = game.teritories.find(
+          (territory) => territory.id === targetId,
+        );
 
-      if (source.owner !== currentUser || target.owner === currentUser) {
-        return {
-          success: false,
-          message: "user must attack from his territory to rival territory",
-        };
-      }
+        if (!source || !target) {
+          throwError("source or target not found", 400);
+        }
 
-      if (!source.neighbors.includes(targetId)) {
-        return {
-          success: false,
-          message: "source territory has no border with attack target",
-        };
-      }
+        if (source.owner !== currentUser || target.owner === currentUser) {
+          throwError(
+            "user must attack from his territory to rival territory",
+            400,
+          );
+        }
 
-      if (source.soldiers <= soldiersAmount) {
-        return {
-          success: false,
-          message:
+        if (!source.neighbors.includes(targetId)) {
+          throwError("source territory has no border with attack target", 400);
+        }
+
+        if (source.soldiers <= soldiersAmount) {
+          throwError(
             "Not enough soldiers in source territory (has no stay at least one)",
-        };
+            400,
+          );
+        }
 
         const fightResult = fightCalculate(sentSoldiers, defendingSoldier);
         if (fightResult.winner === "attacker") target.owner = currentUser;
@@ -102,91 +101,91 @@ export default createService = (gameRepo, mapRepo) => {
         target.soldiers = fightResult.survivors;
 
         if (target.headquarters) return endGame(gameId);
+      }
 
-        game.phase = "move";
-        await updateGame(gameId, game);
-
-        return {
-          game,
-          playerEvent: {
+      const playerEvent = skip
+        ? null
+        : {
             type: "attack",
             fromId: sourceId,
             toId: targetId,
             soldiers: soldiersAmount,
             winner: fightResult.winner,
-          },
-          computerEvents: [],
-        };
-      }
+          };
+
+      game.phase = "move";
+      await updateGame(gameId, game);
+
+      return {
+        game,
+        playerEvent,
+        computerEvents: [],
+      };
     },
 
     async move(gameId, sourceId, targetId, soldiersAmount, currentUser) {
+      gameIdValidation(gameId)
       const game = await getGameById(gameId);
-      const validation = isTurnValid(game, "move");
-      if (!validation.success) {
-        return validation;
-      }
+      isTurnValid(game, "move");
 
       const source = game.teritories.find(
         (territory) => territory.id === sourceId,
       );
       const target = game.teritories.find(
         (territory) => territory.id === targetId,
-      ); 
+      );
 
       if (!source || !target) {
-        return {
-          success: false,
-          message: "source or target not found",
-        };
+        throwError("source or target not found", 400);
       }
 
       if (source.owner !== currentUser || target.owner !== currentUser) {
-        return {
-          success: false,
-          message: "user must attack from his territory to rival territory",
-        };
+        throwError("user must move from his territory to rival territory", 400);
       }
 
       if (source.soldiers <= soldiersAmount) {
-        return {
-          success: false,
-          message:
-            "Not enough soldiers in source territory (has no stay at least one)",
-        };
-    }
-      
-      source.soldiers -= soldiersAmount
-      target.soldiers += soldiersAmount
+        throwError(
+          "Not enough soldiers in source territory (has no stay at least one)",
+          400,
+        );
+      }
 
-      await updateGame(gameId, game)
+      source.soldiers -= soldiersAmount;
+      target.soldiers += soldiersAmount;
 
-      const computerEvents = await computerTurn(gameId)
+      await updateGame(gameId, game);
+
+      const computerEvents = await computerTurn(gameId);
       return {
         game,
         playerEvent: {
-            type: "move",
-            fromId: sourceId,
-            toId: targetId,
-            soldiers: soldiersAmount
+          type: "move",
+          fromId: sourceId,
+          toId: targetId,
+          soldiers: soldiersAmount,
         },
-        computerEvents
-      }
+        computerEvents,
+      };
     },
 
-    async endTurnWithoutMove (gameId) {
-        const computerEvents = await computerTurn(gameId)
-        const game = await gameRepo.getGameById(gameId)
-        if (game.status === 'playing') {
-            game.phase = 'reinforce'
-            game.round += 1
-            await updateGame(gameId, game)
-        }
-        return {
-            game,
-            playerEvent: null,
-            computerEvents
-        }
+    async endTurnWithoutMove(gameId) {
+      gameIdValidation(gameId)
+      const computerEvents = await computerTurn(gameId);
+      const game = await gameRepo.getGameById(gameId);
+      if (game.status === "playing") {
+        game.phase = "reinforce";
+        game.round += 1;
+        await updateGame(gameId, game);
+      }
+      return {
+        game,
+        playerEvent: null,
+        computerEvents,
+      };
     },
-  }
-}
+
+    async computerTurn (gameId) {
+
+    }
+  };
+};
