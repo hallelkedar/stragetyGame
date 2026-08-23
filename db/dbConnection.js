@@ -6,12 +6,13 @@ const URI = process.env.MONGO_URI;
 let client = null;
 let db = null;
 
-export default connectToDB = async () => {
+export const connectToDB = async () => {
   try {
-    client = new MongoClient(uri);
+    client = new MongoClient(URI);
     await client.connect();
     if (!db) {
       db = client.db("armyGame");
+      console.log(`Connected to mongoDB - armyGame db`)
     }
     return db;
   } catch (error) {
