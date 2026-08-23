@@ -26,3 +26,9 @@ export const fightCalculate = (sentSoldiers, defendingSoldier) => {
 
   return {winner, survivers}
 };
+
+export const throwError = (msg, status) => {
+  const error = new Error(msg)
+  error.statusCode = status
+  throw error
+}
