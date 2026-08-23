@@ -16,6 +16,9 @@ app.use(logger)
 app.post('/games', gameControllers.newGameCtrl)
 app.get('/games/:id', gameControllers.getGameCtrl)
 app.post('/games/:id/reinforce', gameControllers.reinforceTerCtrl)
+app.post('/games/:id/attack', gameControllers.attackCtrl)
+app.post('/games/:id/move', gameControllers.moveCtrl)
+app.post('/games/:id/end-turn', gameControllers.endTurnCtrl)
 
 app.use(errorHandler)
 
