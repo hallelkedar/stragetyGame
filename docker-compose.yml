@@ -1,0 +1,14 @@
+services:
+  server:
+    container_name: armyServer
+    build: ./
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: node server.js
+    environment:
+      - PORT=3000
+
+    ports:
+      - "3001:3000"
+
