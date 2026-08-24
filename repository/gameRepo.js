@@ -20,7 +20,6 @@ export default {
     return await collection.findOne({_id: new ObjectId(gameId)})
   },
   updateGame: async (gameId, gameData) => {
-    console.log(gameId)
     const result = await collection.replaceOne({_id: new ObjectId(gameId)}, gameData)
     return result.modifiedCount > 0
   }
