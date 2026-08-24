@@ -17,10 +17,10 @@ export default {
    return result.insertedId
   },
   getGameById: async (gameId) => {
-    return await collection.findOne({_id: gameId})
+    return await collection.findOne({_id: new ObjectId(gameId)})
   },
   updateGame: async (gameId, gameData) => {
-    const result = await collection.updateOne({_id: gameId}, gameData)
+    const result = await collection.replaceOne({_id: gameId}, gameData)
     return result.modifiedCount > 0
   }
 };

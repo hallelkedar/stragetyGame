@@ -8,14 +8,14 @@ export default {
   getMap: async () => {
     return await collection.find().toArray();
   },
-  createMap: async (map) => {
-    if (await collection.find().toArray().length === 0) {
+  createMapIfNotExists: async () => {
+    const mapDB = await await collection.find().toArray();
+    if (mapDB.length > 0) return null;
+
+    const mapFile = await fs.readFile("./repository/ter.json", "utf-8");
+    const map = JSON.stringify(mapFile);
+
     await collection.insertMany(map);
     return true;
-    }
-    return null
-  },
-  getMapJSON: async () => {
-    return await fs.readFile("./repository/ter.json", "utf-8");
   },
 };
