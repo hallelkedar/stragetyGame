@@ -1,48 +1,78 @@
 import { throwError, fightCalculate } from "../utils/utils.js";
-import gameIdValidation from "./gameIdValidation.js";
+import { runComputerTurn } from "./computerAlgo.js";
+
+const assertPhase = (game, phase) => {
+  if (game.phase !== phase) throwError(`Phase is not ${phase}`, 400);
+};
+
+const assertPositiveNumber = (val, key) => {
+  if (!Number.isInteger(val) || val < 1)
+    throwError(`${key} must be a positive number`, 400);
+};
+
+const gameFormat = (gameDoc) => {
+  return {
+    id: gameDoc._id.toString(),
+    playerName: gameDoc.playerName,
+    round: gameDoc.round,
+    phase: gameDoc.phase,
+    status: gameDoc.status,
+    winner: gameDoc.winner,
+    territories: gameDoc.territories,
+  };
+};
+const findTerritory = (game, id) =>
+  game.territories.find((ter) => ter.id === id);
 
 export default (gameRepo, mapRepo) => {
+  const requireGame = async (gameId) => {
+    const game = await gameRepo.getGameById(gameId);
+    if (!game) throwError("Game not found", 404);
+    return game;
+  };
+
+  const requireActiveGame = async (gameId) => {
+    const game = await requireGame(gameId);
+    if (game.status !== "playing") throwError("Game is not open", 409);
+    return game;
+  };
+
   return {
-    initialTerittoriesMap: async () => {
-      const map = await mapRepo.getMapJSON();
-      const mapSaved = await mapRepo.createMap(map);
+    getGame: async (gameId) => {
+      const game = await requireGame(gameId);
+      return gameFormat(game);
     },
     createNewGame: async (playerName) => {
-      const terittories = await mapRepo.getMap();
-      terittories.forEach((territory) => {
-        territory.owner = territory.startOwner;
-        territory.soldiers = territory.headquarters ? 8 : 4;
+      const map = await mapRepo.getMap();
+      const territories = map.map(({ _id, ...ter }) => {
+        return {
+          ...ter,
+          owner: ter.startOwner,
+          soldiers: ter.headquarters ? 8 : 4,
+        };
       });
-      const gameId = await gameRepo.createGame(playerName, terittories);
+
+      const gameId = await gameRepo.createGame(playerName, territories);
       const game = await gameRepo.getGameById(gameId);
-      return game;
+      return gameFormat(game);
     },
+    reinforce: async (gameId, territoryId) => {
+      const game = await gameRepo.getGameById(gameId);
+      assertPhase(game, "reinforce");
+      assertPositiveNumber(territoryId, "territoryId");
 
-    isTurnValid: (game, turnName) => {
-      game.status !== "playing" ? throwError("Game is not active", 409) : null;
-      game.phase !== turnName ? throwError(`Phase is not ${turnName}`) : null;
-      return true;
-    },
+      const territory = findTerritory(game, territoryId);
 
-    reinforce: async (gameId, territoryId, currentUser) => {
-      const game = gameRepo.getGameById(gameId);
-      gameIdValidation(gameId);
-      isTurnValid(game, "reinforce");
-
-      const territory = game.territories.find(
-        (territory) => territory.id === territoryId,
-      );
-
-      if (!territory || territory.owner !== currentUser)
+      if (!territory || territory.owner !== "player")
         throwError("territory is not valid to reinforce", 400);
 
       territory.soldiers += 3;
       game.phase = "attack";
 
-      await updateGame(gameId, game);
+      await gameRepo.updateGame(gameId, game);
 
       return {
-        game,
+        game: gameFormat(game),
         playerEvent: {
           type: "reinforce",
           territoryId,
@@ -52,188 +82,138 @@ export default (gameRepo, mapRepo) => {
       };
     },
 
-    async attack(
+    attack: async (
       gameId,
       sourceId,
       targetId,
       soldiersAmount,
-      currentUser,
       skip = false,
-    ) {
-      gameIdValidation(gameId);
+    ) => {
       const game = await gameRepo.getGameById(gameId);
+      assertPhase(game, "attack");
+
+      let playerEvent = [];
 
       if (!skip) {
-        isTurnValid(game, "attack");
+        const source = findTerritory(game, sourceId);
+        const target = findTerritory(game, targetId);
 
-        const source = game.teritories.find(
-          (territory) => territory.id === sourceId,
-        );
-        const target = game.teritories.find(
-          (territory) => territory.id === targetId,
-        );
+        if (!source || !target) throwError("source or target not found", 400);
+        if (source.owner !== "player")
+          throwError("source is not owned by player", 400);
+        if (target.owner !== "computer")
+          throwError("target is not owned by computer", 400);
 
-        if (!source || !target) {
-          throwError("source or target not found", 400);
-        }
-
-        if (source.owner !== currentUser || target.owner === currentUser) {
-          throwError(
-            "user must attack from his territory to rival territory",
-            400,
-          );
-        }
-
-        if (!source.neighbors.includes(targetId)) {
+        if (!source.neighbors.includes(targetId))
           throwError("source territory has no border with attack target", 400);
-        }
 
-        if (source.soldiers <= soldiersAmount) {
+        if (source.soldiers <= soldiersAmount)
           throwError(
             "Not enough soldiers in source territory (has no stay at least one)",
             400,
           );
+
+        const { winner, survivors } = fightCalculate(
+          soldiersAmount,
+          target.soldiers,
+        );
+        source.soldiers -= soldiersAmount;
+        if (winner === "attacker") target.owner = "player";
+        playerEvent = {
+          type: "attack",
+          fromId: sourceId,
+          toId: targetId,
+          soldiers: soldiersAmount,
+          winner: winner === "attacker" ? "player" : "computer",
+        };
+
+        if (target.headquarters) {
+          game.status = "finished";
+          game.winner = "player";
+          
+          await gameRepo.updateGame(gameId, game);
+
+          return {
+            game: gameFormat(game),
+            playerEvent,
+            computerEvents: [],
+          };
         }
-
-        const fightResult = fightCalculate(sentSoldiers, defendingSoldier);
-        if (fightResult.winner === "attacker") target.owner = currentUser;
-
-        target.soldiers = fightResult.survivors;
-
-        if (target.headquarters) return endGame(gameId);
       }
 
-      const playerEvent = skip
-        ? null
-        : {
-            type: "attack",
-            fromId: sourceId,
-            toId: targetId,
-            soldiers: soldiersAmount,
-            winner: fightResult.winner,
-          };
-
       game.phase = "move";
-      await updateGame(gameId, game);
+      await gameRepo.updateGame(gameId, game);
 
       return {
-        game,
+        game: gameFormat(game),
         playerEvent,
         computerEvents: [],
       };
     },
 
-    async move(gameId, sourceId, targetId, soldiersAmount, currentUser) {
-      gameIdValidation(gameId);
-      const game = await getGameById(gameId);
-      isTurnValid(game, "move");
+    move: async (gameId, sourceId, targetId, soldiersAmount) => {
+      const game = await gameRepo.getGameById(gameId);
+      assertPhase(game, "move");
 
-      const source = game.teritories.find(
-        (territory) => territory.id === sourceId,
-      );
-      const target = game.teritories.find(
-        (territory) => territory.id === targetId,
-      );
+      const source = findTerritory(game, sourceId);
+      const target = findTerritory(game, targetId);
 
-      if (!source || !target) {
-        throwError("source or target not found", 400);
-      }
+      let playerEvent = null;
 
-      if (source.owner !== currentUser || target.owner !== currentUser) {
-        throwError("user must move from his territory to rival territory", 400);
-      }
+      if (!source || !target) throwError("source or target not found", 400);
+      if (sourceId === targetId)
+        throwError("source and target must be different", 400);
+      if (source.owner !== "player" || target.owner !== "player")
+        throwError("source and target must be player's territory", 400);
 
-      if (source.soldiers <= soldiersAmount) {
+      if (source.soldiers <= soldiersAmount)
         throwError(
           "Not enough soldiers in source territory (has no stay at least one)",
           400,
         );
-      }
-
+      
       source.soldiers -= soldiersAmount;
       target.soldiers += soldiersAmount;
-
-      await updateGame(gameId, game);
-
-      const computerEvents = await this.computerTurn(gameId);
-      return {
-        game,
-        playerEvent: {
+      playerEvent = {
           type: "move",
           fromId: sourceId,
           toId: targetId,
           soldiers: soldiersAmount,
-        },
+      }
+
+      const computerEvents = runComputerTurn(game);
+
+      if (game.status === "playing") {
+        game.phase = "reinforce";
+        game.round += 1;
+      }
+      await gameRepo.updateGame(gameId, game);
+
+      return {
+        game: gameFormat(game),
+        playerEvent,
         computerEvents,
       };
     },
 
-    async endTurnWithoutMove(gameId) {
-      gameIdValidation(gameId);
-      const computerEvents = await this.computerTurn(gameId);
+    endTurnWithoutMove: async (gameId) => {
       const game = await gameRepo.getGameById(gameId);
+      assertPhase(game, "move");
+
+      const computerEvents = runComputerTurn(game);
+
       if (game.status === "playing") {
         game.phase = "reinforce";
         game.round += 1;
-        await updateGame(gameId, game);
       }
+
+      await updateGame(gameId, game);
+
       return {
-        game,
+        game: gameFormat(game),
         playerEvent: null,
         computerEvents,
       };
     },
-
-    async computerTurn(gameId) {},
-
-    computerReinforce: (game) => {
-      const playerTerDistance = game.territories.map((ter) => {
-        if (ter.owner === "player") return ter.distanceFromComputerHQ;
-      });
-      const minComputerHQDistance = Math.min(playerTerDistance);
-
-      const computerTerittories = game.territories.filter(
-        (ter) => ter.owner === "computer",
-      );
-
-      if (minComputerHQDistance <= 2) {
-        const borderTerittories = computerTerittories.filter(
-          (ter) =>
-            ter.distanceFromComputerHQ ===
-            Math.min(game.territories.map((ter) => ter.distanceFromComputerHQ)),
-        );
-
-        if (borderTerittories.length === 1) return borderTerittories[0];
-        const minSoldiers = Math.min(
-          borderTerittories.map((ter) => ter.soldiers),
-        );
-
-        const minSoldiersTer = borderTerittories.filter(
-          (ter) => ter.soldiers === minSoldiers,
-        );
-        if (minSoldiers.length === 1) return minSoldiersTer[0];
-      } else {
-        const borderTerittories = minComputerHQDistance.filter(
-          (ter) =>
-            ter.distanceFromPlayerHQ ===
-            Math.min(
-              computerTerittories.map((ter) => ter.distanceFromPlayerHQ),
-            ),
-        );
-        if (borderTerittories.length === 1) return borderTerittories[0];
-        const minSoldiersTer = borderTerittories.filter(
-          (ter) =>
-            ter.soldiers ===
-            Math.min(borderTerittories.map((ter) => ter.soldiers)),
-        );
-
-        if (minSoldiersTer.length === 1) return minSoldiersTer[0];
-      }
-      return minSoldiersTer.filter(
-        (ter) => ter.id === Math.min(minSoldiersTer.map((ter) => ter.id)),
-      );
-    },
-
-    computerAttack: (game) => {},
   };
 };
