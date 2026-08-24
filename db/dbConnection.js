@@ -8,6 +8,8 @@ let db = null;
 
 export const connectToDB = async () => {
   try {
+    
+    if (!URI) throw new Error('mongo URI is missing from env.')
     client = new MongoClient(URI);
     await client.connect();
     if (db) {
