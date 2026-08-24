@@ -1,4 +1,4 @@
-export const fightCalculate = (sentSoldiers, defendingSoldier) => {
+export const fightCalculate = (sentSoldiers, defendingSoldiers) => {
   const attackLuck = 0.6 + Math.random() * 0.4;
   const defenseLuck = 0.6 + Math.random() * 0.4;
 
