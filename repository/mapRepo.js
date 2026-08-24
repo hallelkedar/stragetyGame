@@ -13,8 +13,8 @@ export default {
     if (mapDB.length > 0) return null;
 
     const mapFile = await fs.readFile("./repository/ter.json", "utf-8");
-    const map = JSON.stringify(mapFile);
-
+    const map = JSON.parse(mapFile);
+    
     await collection.insertMany(map);
     return true;
   },
