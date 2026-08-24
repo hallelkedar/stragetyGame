@@ -10,10 +10,11 @@ export const connectToDB = async () => {
   try {
     client = new MongoClient(URI);
     await client.connect();
-    if (!db) {
-      db = client.db("armyGame");
-      console.log(`Connected to mongoDB - armyGame db`)
+    if (db) {
+      return db
     }
+    db = client.db("armyGame");
+    console.log(`Connected to mongoDB - armyGame db`)
     return db;
   } catch (error) {
     console.error(error);
