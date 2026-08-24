@@ -6,5 +6,5 @@ export default (err, req, res, next) => {
         message = "Internal server error"
         status = 500
     }
-    return res.status(status).json({success: false, message})
+    return res.status(status).json({error: message})
 }
