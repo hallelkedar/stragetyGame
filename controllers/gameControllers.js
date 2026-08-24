@@ -2,7 +2,6 @@ import createGameService from "../service/gameService.js"
 import gameRepo from "../repository/gameRepo.js"
 import mapRepo from "../repository/mapRepo.js"
 import { throwError } from "../utils/utils.js"
-import gameIdValidation from "../service/gameIdValidation.js"
 
 const gameService = createGameService(gameRepo, mapRepo)
 
@@ -11,20 +10,20 @@ export default {
         if (!req.body) throwError('Request must contain body', 422)
         const {playerName} = req.body
         if (!playerName || playerName.length === 0) throwError("Player name is not valid", 400)
-        await gameService.initialTerittoriesMap()
         
         const game = await gameService.createNewGame(playerName.trim())
         return res.status(201).json(game)
     },
     getGameCtrl: async (req, res) => {
         const {id} = req.params
-        gameIdValidation(id)
-        return res.json(await gameRepo.getGameById(id))
+        const game = await gameService.getGame(id)
+        return res.json(game)
     },
 
     reinforceTerCtrl: async (req, res) => {
         const {id} = req.params
-        const {territoryId} = req.body
+
+        const {territoryId} = req.body || {}
 
         const result = await gameService.reinforce(id, Number(territoryId), 'player')
         return res.json(result)
@@ -32,17 +31,17 @@ export default {
 
     attackCtrl: async (req, res) => {
         const {id} = req.params
-        const { fromId, toId, soldiers, skip } = req.body
+        const { fromId, toId, soldiers, skip } = req.body || {}
 
-        const result = await gameService.attack(id, fromId, toId, soldiers, 'player', skip)
+        const result = await gameService.attack(id, Number(fromId), Number(toId), Number(soldiers), skip)
         return res.json(result)
     },
 
     moveCtrl: async (req, res) => {
         const {id} = req.params
-        const { fromId, toId, soldiers, skip } = req.body
+        const { fromId, toId, soldiers, skip } = req.body || {}
 
-        const result = await gameService.move(id, fromId, toId, soldiers, 'player')
+        const result = await gameService.move(id, Number(fromId), Number(toId), Number(soldiers))
         return res.json(result)
     },
 
