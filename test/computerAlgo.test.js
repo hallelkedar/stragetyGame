@@ -23,7 +23,7 @@ const getCleanTerritories = async () => {
 const findTerritory = (territories, id) =>
   territories.find((ter) => ter.id === id);
 
-describe("game business logic tests", () => {
+describe("Computer algorithm tests", () => {
   it("should add 3 soldiers to territory 2 (computer is prottecting his HQ)", async () => {
     const map = await getCleanTerritories();
 
