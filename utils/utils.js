@@ -1,12 +1,12 @@
 export const fightCalculate = (sentSoldiers, defendingSoldier) => {
-  attackLuck = 0.6 + Math.random() * 0.4;
-  defenseLuck = 0.6 + Math.random() * 0.4;
+  const attackLuck = 0.6 + Math.random() * 0.4;
+  const defenseLuck = 0.6 + Math.random() * 0.4;
 
-  attackPower = sentSoldiers * attackLuck;
-  defensePower = defendingSoldiers * defenseLuck;
+  const attackPower = sentSoldiers * attackLuck;
+  const defensePower = defendingSoldiers * defenseLuck;
 
   const winner = attackPower > defensePower ? "attacker" : "defender";
-  let survivers;
+  let survivors;
 
   if (winner === "attacker") {
     survivors = Math.max(
@@ -24,7 +24,7 @@ export const fightCalculate = (sentSoldiers, defendingSoldier) => {
     );
   }
 
-  return {winner, survivers}
+  return {winner, survivors}
 };
 
 export const throwError = (msg, status) => {
