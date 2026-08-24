@@ -92,7 +92,7 @@ export default (gameRepo, mapRepo) => {
       const game = await requireActiveGame(gameId);
       assertPhase(game, "attack");
 
-      let playerEvent = [];
+      let playerEvent = null;
 
       if (!skip) {
         const source = findTerritory(game, sourceId);
@@ -207,7 +207,7 @@ export default (gameRepo, mapRepo) => {
         game.round += 1;
       }
 
-      await updateGame(gameId, game);
+      await gameRepo.updateGame(gameId, game);
 
       return {
         game: gameFormat(game),
