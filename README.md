@@ -1,6 +1,19 @@
 # North israel campaign - IDF strategy game
 ## strategy game server that can connect to interctive front board game
 
+### Install and run
+- if you wanna use docker - you can run with:
+```
+docker-compose up -d
+```
+* Create your .env file with PORT and MONGO_URI
+* Run with 
+```
+npm install
+```
+```
+npm start
+```
 
 ### Server Endpoints
 
