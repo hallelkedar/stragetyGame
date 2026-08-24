@@ -20,7 +20,7 @@ export const isComputerInDefense = (territories) => {
   return Math.min(...playerDistances) <= 2;
 };
 
-const pickBest = (list, ...keyFns) => {
+const pickMinOf = (list, ...keyFns) => {
   let candidates = list;
   for (const keyFn of keyFns) {
     const bestValue = Math.min(...candidates.map(keyFn));
@@ -39,13 +39,13 @@ export const computerReinforce = (territories) => {
   if (border.length === 0) return null;
 
   const chosenTer = defense
-    ? pickBest(
+    ? pickMinOf(
         border,
         (ter) => ter.distanceFromComputerHQ,
         (ter) => ter.soldiers,
         (t) => t.id,
       )
-    : pickBest(
+    : pickMinOf(
         border,
         (t) => t.distanceFromPlayerHQ,
         (t) => -t.soldiers,
@@ -90,7 +90,7 @@ export const computerAttack = (territories) => {
 
   if (candidates.length === 0) return null;
 
-  const best = pickBest(
+  const best = pickMinOf(
     candidates,
     (can) => -can.score,
     (c) => c.to.id,
@@ -142,7 +142,7 @@ export const computerMove = (territories) => {
 
   if (candidates.length === 0) return null;
 
-  const best = pickBest(
+  const best = pickMinOf(
     candidates,
     (c) => -c.from.soldiers,
     (c) => c.to.id,
