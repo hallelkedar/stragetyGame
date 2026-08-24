@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
-import {connectToDB} from "../db/dbConnection.js";
+import { connectToDB } from "../db/dbConnection.js";
 
-const db = await connectToDB()
+const db = await connectToDB();
 const collection = db.collection("games");
 
 export default {
@@ -14,13 +14,16 @@ export default {
       status: "playing",
       winner: null,
     });
-   return result.insertedId
+    return result.insertedId;
   },
   getGameById: async (gameId) => {
-    return await collection.findOne({_id: new ObjectId(gameId)})
+    return await collection.findOne({ _id: new ObjectId(gameId) });
   },
   updateGame: async (gameId, gameData) => {
-    const result = await collection.replaceOne({_id: new ObjectId(gameId)}, gameData)
-    return result.modifiedCount > 0
-  }
+    const result = await collection.replaceOne(
+      { _id: new ObjectId(gameId) },
+      gameData,
+    );
+    return result.modifiedCount > 0;
+  },
 };

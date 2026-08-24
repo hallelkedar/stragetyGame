@@ -1,16 +1,22 @@
 # North israel campaign - IDF strategy game
+
 ## strategy game server that can connect to interctive front board game
 
 ### Install and run
+
 - if you wanna use docker - you can run with:
+
 ```
 docker-compose up -d
 ```
-* Create your .env file with PORT and MONGO_URI
-* Run with 
+
+- Create your .env file with PORT and MONGO_URI
+- Run with
+
 ```
 npm install
 ```
+
 ```
 npm start
 ```
@@ -127,4 +133,5 @@ response-data - {
 if game is over (player or computer captured headquarters) - status will change to 'finished' and winner will change to the winner
 
 ### DB
-Used mongoDB as database for that project, because we needed store arrays in object, and it's simpler to use noSQL, when start running server it's create map db if not already exists (with ter.json) 
+
+Used mongoDB as database for that project, because we needed store arrays in object, and it's simpler to use noSQL, when start running server it's create map db if not already exists (with ter.json)

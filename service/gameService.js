@@ -119,7 +119,7 @@ export default (gameRepo, mapRepo) => {
         );
         source.soldiers -= soldiersAmount;
         if (winner === "attacker") target.owner = "player";
-        target.soldiers = survivors
+        target.soldiers = survivors;
         playerEvent = {
           type: "attack",
           fromId: sourceId,
@@ -131,7 +131,7 @@ export default (gameRepo, mapRepo) => {
         if (target.headquarters) {
           game.status = "finished";
           game.winner = "player";
-          
+
           await gameRepo.updateGame(gameId, game);
 
           return {
@@ -172,15 +172,15 @@ export default (gameRepo, mapRepo) => {
           "Not enough soldiers in source territory (has no stay at least one)",
           400,
         );
-      
+
       source.soldiers -= soldiersAmount;
       target.soldiers += soldiersAmount;
       playerEvent = {
-          type: "move",
-          fromId: sourceId,
-          toId: targetId,
-          soldiers: soldiersAmount,
-      }
+        type: "move",
+        fromId: sourceId,
+        toId: targetId,
+        soldiers: soldiersAmount,
+      };
 
       const computerEvents = runComputerTurn(game);
 

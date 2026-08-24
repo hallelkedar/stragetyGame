@@ -14,7 +14,7 @@ export default {
 
     const mapFile = await fs.readFile("./repository/ter.json", "utf-8");
     const map = JSON.parse(mapFile);
-    
+
     await collection.insertMany(map);
     return true;
   },

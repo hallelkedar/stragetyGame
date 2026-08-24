@@ -1,13 +1,14 @@
 services:
   server:
     container_name: armyServer
-    build: ./
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
     working_dir: /app
     volumes:
       - ./:/app
-    command: node server.js
+      - /app/node_modules
     environment:
-      - PORT=3000
-
+      - PORT=3001
     ports:
       - "3000:3001"

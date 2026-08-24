@@ -1,8 +1,10 @@
 import { fightCalculate } from "../utils/utils.js";
 
-const findTerritory = (territories, id) => territories.find((ter) => ter.id === id);
+const findTerritory = (territories, id) =>
+  territories.find((ter) => ter.id === id);
 
-const getOwnedBy = (territories, owner) => territories.filter((t) => t.owner === owner);
+const getOwnedBy = (territories, owner) =>
+  territories.filter((t) => t.owner === owner);
 
 const isBorderTerritory = (territories, territory) =>
   territory.neighbors.some((neighborId) => {
@@ -12,7 +14,7 @@ const isBorderTerritory = (territories, territory) =>
 
 export const isComputerInDefense = (territories) => {
   const playerDistances = getOwnedBy(territories, "player").map(
-    (t) => t.distanceFromComputerHQ
+    (t) => t.distanceFromComputerHQ,
   );
   if (playerDistances.length === 0) return false;
   return Math.min(...playerDistances) <= 2;
@@ -30,13 +32,25 @@ const pickBest = (list, ...keyFns) => {
 export const computerReinforce = (territories) => {
   const defense = isComputerInDefense(territories);
   const computerTerritories = getOwnedBy(territories, "computer");
-  let border = computerTerritories.filter((t) => isBorderTerritory(territories, t));
+  let border = computerTerritories.filter((t) =>
+    isBorderTerritory(territories, t),
+  );
   if (border.length === 0) border = computerTerritories;
   if (border.length === 0) return null;
 
   const chosenTer = defense
-    ? pickBest(border, (ter) => ter.distanceFromComputerHQ, (ter) => ter.soldiers, (t) => t.id)
-    : pickBest(border, (t) => t.distanceFromPlayerHQ, (t) => -t.soldiers, (t) => t.id);
+    ? pickBest(
+        border,
+        (ter) => ter.distanceFromComputerHQ,
+        (ter) => ter.soldiers,
+        (t) => t.id,
+      )
+    : pickBest(
+        border,
+        (t) => t.distanceFromPlayerHQ,
+        (t) => -t.soldiers,
+        (t) => t.id,
+      );
 
   chosenTer.soldiers += 3;
   return { type: "reinforce", territoryId: chosenTer.id, soldiersAdded: 3 };
@@ -61,9 +75,14 @@ export const computerAttack = (territories) => {
 
       const progress = from.distanceFromPlayerHQ - to.distanceFromPlayerHQ;
       const soldierAdvantage = sentSoldiers - to.soldiers;
-      const protectsHeadquarters = Math.max(0, 3 - to.distanceFromComputerHQ) * 25;
+      const protectsHeadquarters =
+        Math.max(0, 3 - to.distanceFromComputerHQ) * 25;
       const headquartersScore = to.headquarters ? 1000 : 0;
-      const score = progress * 10 + soldierAdvantage + protectsHeadquarters + headquartersScore;
+      const score =
+        progress * 10 +
+        soldierAdvantage +
+        protectsHeadquarters +
+        headquartersScore;
 
       candidates.push({ from, to, sentSoldiers, score });
     }
@@ -71,7 +90,12 @@ export const computerAttack = (territories) => {
 
   if (candidates.length === 0) return null;
 
-  const best = pickBest(candidates, (can) => -can.score, (c) => c.to.id, (c) => c.from.id);
+  const best = pickBest(
+    candidates,
+    (can) => -can.score,
+    (c) => c.to.id,
+    (c) => c.from.id,
+  );
   const { from, to, sentSoldiers } = best;
 
   const { winner, survivors } = fightCalculate(sentSoldiers, to.soldiers);
@@ -82,7 +106,13 @@ export const computerAttack = (territories) => {
   const headquartersCaptured = to.headquarters && winner === "attacker";
 
   return {
-    event: { type: "attack", fromId: from.id, toId: to.id, soldiers: sentSoldiers, winner: winner === "attacker" ? "computer" : "player"  },
+    event: {
+      type: "attack",
+      fromId: from.id,
+      toId: to.id,
+      soldiers: sentSoldiers,
+      winner: winner === "attacker" ? "computer" : "player",
+    },
     headquartersCaptured,
   };
 };
@@ -112,7 +142,12 @@ export const computerMove = (territories) => {
 
   if (candidates.length === 0) return null;
 
-  const best = pickBest(candidates, (c) => -c.from.soldiers, (c) => c.to.id, (c) => c.from.id);
+  const best = pickBest(
+    candidates,
+    (c) => -c.from.soldiers,
+    (c) => c.to.id,
+    (c) => c.from.id,
+  );
   const { from, to } = best;
   const moved = from.headquarters ? from.soldiers - 4 : from.soldiers - 1;
 

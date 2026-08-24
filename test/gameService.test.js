@@ -150,12 +150,12 @@ describe("game service function test", () => {
       const mockRepo = createMockRepo({
         phase: "move",
       });
-      const service = gameService(mockRepo, {})
-      
+      const service = gameService(mockRepo, {});
+
       await assert.rejects(service.move(1, 2, 2, 2), (e) => {
-        assert.strictEqual(e.statusCode, 400)
-        return true
-      })
+        assert.strictEqual(e.statusCode, 400);
+        return true;
+      });
     });
   });
 });
