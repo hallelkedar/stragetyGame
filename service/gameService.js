@@ -57,7 +57,7 @@ export default (gameRepo, mapRepo) => {
       return gameFormat(game);
     },
     reinforce: async (gameId, territoryId) => {
-      const game = await gameRepo.getGameById(gameId);
+      const game = await requireActiveGame(gameId);
       assertPhase(game, "reinforce");
       assertPositiveNumber(territoryId, "territoryId");
 
@@ -89,7 +89,7 @@ export default (gameRepo, mapRepo) => {
       soldiersAmount,
       skip = false,
     ) => {
-      const game = await gameRepo.getGameById(gameId);
+      const game = await requireActiveGame(gameId);
       assertPhase(game, "attack");
 
       let playerEvent = [];
@@ -152,7 +152,7 @@ export default (gameRepo, mapRepo) => {
     },
 
     move: async (gameId, sourceId, targetId, soldiersAmount) => {
-      const game = await gameRepo.getGameById(gameId);
+      const game = await requireActiveGame(gameId);
       assertPhase(game, "move");
 
       const source = findTerritory(game, sourceId);
@@ -197,7 +197,7 @@ export default (gameRepo, mapRepo) => {
     },
 
     endTurnWithoutMove: async (gameId) => {
-      const game = await gameRepo.getGameById(gameId);
+      const game = await requireActiveGame(gameId);
       assertPhase(game, "move");
 
       const computerEvents = runComputerTurn(game);
