@@ -119,6 +119,7 @@ export default (gameRepo, mapRepo) => {
         );
         source.soldiers -= soldiersAmount;
         if (winner === "attacker") target.owner = "player";
+        target.soldiers = survivors
         playerEvent = {
           type: "attack",
           fromId: sourceId,
